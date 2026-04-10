@@ -75,7 +75,7 @@
   <%#= render_flash_messages %>
 
   <%# ── FILTROS ── %>
-  <%= form_tag issue_reminders_path, method: :get do %>
+  <%= form_tag redmine_ir_panel_path, method: :get do %>
     <div class="ir-filter-box">
       <h3>Filtrar tickets</h3>
       <div class="ir-filter-row">
@@ -109,7 +109,7 @@
   <% end %>
 
   <%# ── FORMULARIO DE ENVÍO ── %>
-  <%= form_tag send_issue_reminders_path, method: :post, id: 'ir-form' do %>
+  <%= form_tag redmine_ir_send_path, method: :post, id: 'ir-form' do %>
 
     <% if @issues_by_user.any? %>
 
@@ -148,7 +148,7 @@
           </thead>
           <tbody>
             <% issues.each do |issue| %>
-              <% last_j = issue.journals.where.not(notes: [nil, '']).order(created_on: :desc).first %>
+              <% last_j = @last_journal_by_issue[issue.id] %>
               <tr>
                 <td style="text-align:center;">
                   <%= check_box_tag 'issue_ids[]', issue.id, false, class: 'ir-cb' %>

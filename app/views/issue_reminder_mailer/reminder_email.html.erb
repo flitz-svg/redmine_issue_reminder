@@ -30,7 +30,7 @@
       </thead>
       <tbody>
         <% @issues.each do |issue| %>
-          <% last_j = issue.journals.where.not(notes:[nil,'']).order(created_on: :desc).first %>
+          <% last_j = issue.journals.select { |j| j.notes.present? }.max_by(&:created_on) %>
           <% url = "#{Setting.protocol}://#{Setting.host_name}/issues/#{issue.id}" %>
           <tr>
             <td><a href="<%= url %>">#<%= issue.id %></a></td>

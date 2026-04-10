@@ -11,6 +11,9 @@ class IssueRemindersController < ApplicationController
     @days_without_update  = params[:days_without_update].to_i
     @issues = fetch_issues
     @issues_by_user = @issues.group_by(&:assigned_to)
+    @last_journal_by_issue = @issues.each_with_object({}) do |issue, h|
+      h[issue.id] = issue.journals.select { |j| j.notes.present? }.max_by(&:created_on)
+    end
   end
 
   # POST /admin/issue_reminders/send
@@ -18,7 +21,7 @@ class IssueRemindersController < ApplicationController
     issue_ids = params[:issue_ids] || []
     if issue_ids.empty?
       flash[:error] = 'No seleccionaste ningún ticket.'
-      redirect_to issue_reminders_path and return
+      redirect_to redmine_ir_panel_path and return
     end
     issues = Issue.where(id: issue_ids).includes(:assigned_to, :status, :project, :journals)
     issues_by_user = issues.group_by(&:assigned_to)
@@ -29,7 +32,7 @@ class IssueRemindersController < ApplicationController
       sent_count += 1
     end
     flash[:notice] = "Recordatorios enviados a #{sent_count} usuario(s) (#{issue_ids.size} tickets)."
-    redirect_to issue_reminders_path
+    redirect_to redmine_ir_panel_path
   end
 
   # POST /issues/:issue_id/reminder/send  — botón desde el ticket

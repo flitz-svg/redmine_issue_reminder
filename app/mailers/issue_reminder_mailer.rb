@@ -1,6 +1,5 @@
 class IssueReminderMailer < ActionMailer::Base
   include Redmine::I18n
-  layout 'mailer'
 
   def reminder_email(user, issues)
     @user   = user

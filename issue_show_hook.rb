@@ -4,8 +4,8 @@ class IssueReminderShowHook < Redmine::Hook::ViewListener
     return '' unless issue&.assigned_to.is_a?(User) && issue.assigned_to.active?
 
     send_url      = "/issues/#{issue.id}/reminder/send"
-    assignee_name = ERB::Util.html_escape(issue.assigned_to.name)
-    assignee_mail = ERB::Util.html_escape(issue.assigned_to.mail)
+    assignee_name = issue.assigned_to.name.to_json
+    assignee_mail = issue.assigned_to.mail.to_json
 
     <<~HTML
       <form id="ir-hidden-form"
@@ -31,7 +31,7 @@ class IssueReminderShowHook < Redmine::Hook::ViewListener
           link.style.marginRight = '4px';
           link.addEventListener('click', function(e) {
             e.preventDefault();
-            if (confirm('¿Enviar recordatorio a #{assignee_name} (#{assignee_mail})?')) {
+            if (confirm('¿Enviar recordatorio a ' + #{assignee_name} + ' (' + #{assignee_mail} + ')?')) {
               document.getElementById('ir-hidden-form').submit();
             }
           });
