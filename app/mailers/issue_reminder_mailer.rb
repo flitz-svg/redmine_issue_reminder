@@ -1,5 +1,6 @@
 class IssueReminderMailer < ActionMailer::Base
   include Redmine::I18n
+  helper { include Redmine::I18n }
 
   def reminder_email(user, issues)
     @user   = user
@@ -7,7 +8,7 @@ class IssueReminderMailer < ActionMailer::Base
     mail(
       to:      user.mail,
       from:    Setting.mail_from,
-      subject: "[Recordatorio] Tienes #{issues.size} ticket(s) asignado(s) pendiente(s)"
+      subject: l(:ir_mail_subject, count: issues.size)
     )
   end
 end

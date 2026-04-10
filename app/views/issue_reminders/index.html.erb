@@ -68,7 +68,7 @@
 <% end %>
 
 <div class="reminder-panel">
-  <h2>📋 Recordatorios de Tickets</h2>
+  <h2><%= l(:ir_panel_title) %></h2>
 
   <%# Flash solo aquí — Redmine ya lo muestra arriba, así que lo omitimos
       para evitar el duplicado. Si tu tema no lo muestra, quita los comentarios. %>
@@ -77,31 +77,31 @@
   <%# ── FILTROS ── %>
   <%= form_tag redmine_ir_panel_path, method: :get do %>
     <div class="ir-filter-box">
-      <h3>Filtrar tickets</h3>
+      <h3><%= l(:ir_filter_title) %></h3>
       <div class="ir-filter-row">
 
         <div class="ir-fg">
-          <label>Proyecto(s) <small style="font-weight:normal;">(Ctrl+clic = varios)</small></label>
+          <label><%= l(:ir_label_projects) %> <small style="font-weight:normal;"><%= l(:ir_label_projects_hint) %></small></label>
           <%= select_tag 'project_ids[]',
                 options_from_collection_for_select(@projects, :id, :name, @selected_project_ids),
                 multiple: true, size: 5 %>
         </div>
 
         <div class="ir-fg">
-          <label>Estado(s)</label>
+          <label><%= l(:ir_label_statuses) %></label>
           <%= select_tag 'status_ids[]',
                 options_from_collection_for_select(@statuses, :id, :name, @selected_status_ids),
                 multiple: true, size: 5 %>
         </div>
 
         <div class="ir-fg">
-          <label>Sin actualización hace más de (días)</label>
+          <label><%= l(:ir_label_days) %></label>
           <%= number_field_tag 'days_without_update', @days_without_update, min: 0 %>
-          <small style="color:#888;">0 = sin filtro de fecha</small>
+          <small style="color:#888;"><%= l(:ir_label_days_hint) %></small>
         </div>
 
         <div class="ir-fg" style="justify-content:flex-end; padding-bottom:2px;">
-          <button type="submit" class="ir-btn-filter">Aplicar filtros</button>
+          <button type="submit" class="ir-btn-filter"><%= l(:ir_btn_filter) %></button>
         </div>
 
       </div>
@@ -116,19 +116,19 @@
       <div class="ir-action-bar">
         <label class="ir-sel-label">
           <input type="checkbox" id="ir-sel-all">
-          Seleccionar todos
+          <%= l(:ir_label_select_all) %>
         </label>
         <span style="font-size:13px; color:#555;">
-          <strong id="ir-sel-count">0</strong> seleccionado(s)
+          <strong id="ir-sel-count">0</strong> <%= l(:ir_label_selected_count) %>
         </span>
         <button type="submit" class="ir-btn-send" onclick="return irConfirmSend();">
-          Enviar recordatorios
+          <%= l(:ir_btn_send) %>
         </button>
       </div>
 
       <% @issues_by_user.each do |user, issues| %>
         <div class="ir-user-header">
-          👤 <%= user ? user.name : 'Sin asignar' %>
+          👤 <%= user ? user.name : l(:ir_label_unassigned) %>
           <span class="ir-cnt"><%= issues.size %></span>
           <span class="ir-mail"><%= user&.mail %></span>
         </div>
@@ -137,13 +137,13 @@
           <thead>
             <tr>
               <th style="width:28px;"></th>
-              <th>#</th>
-              <th>Proyecto</th>
-              <th>Asunto</th>
-              <th>Estado</th>
-              <th>Prioridad</th>
-              <th>Creado</th>
-              <th>Última actualización</th>
+              <th><%= l(:ir_col_id) %></th>
+              <th><%= l(:ir_col_project) %></th>
+              <th><%= l(:ir_col_subject) %></th>
+              <th><%= l(:ir_col_status) %></th>
+              <th><%= l(:ir_col_priority) %></th>
+              <th><%= l(:ir_col_created) %></th>
+              <th><%= l(:ir_col_updated) %></th>
             </tr>
           </thead>
           <tbody>
@@ -158,12 +158,12 @@
                 <td><%= link_to issue.subject, issue_path(issue), target: '_blank' %></td>
                 <td><span class="ir-badge"><%= issue.status.name %></span></td>
                 <td><%= issue.priority.name %></td>
-                <td><%= issue.created_on.strftime('%d/%m/%Y %H:%M') %></td>
+                <td><%= format_time(issue.created_on) %></td>
                 <td>
                   <% if last_j %>
-                    <%= last_j.created_on.strftime('%d/%m/%Y %H:%M') %>
+                    <%= format_time(last_j.created_on) %>
                   <% else %>
-                    <span class="ir-no-upd">Sin actualizaciones</span>
+                    <span class="ir-no-upd"><%= l(:ir_label_no_updates) %></span>
                   <% end %>
                 </td>
               </tr>
@@ -175,12 +175,12 @@
       <%# Botón inferior — mismo estilo %>
       <div class="ir-action-bar" style="margin-top:4px;">
         <button type="submit" class="ir-btn-send" onclick="return irConfirmSend();">
-          Enviar recordatorios seleccionados
+          <%= l(:ir_btn_send_selected) %>
         </button>
       </div>
 
     <% else %>
-      <div class="ir-empty">✅ No hay tickets que coincidan con los filtros aplicados.</div>
+      <div class="ir-empty"><%= l(:ir_notice_no_issues) %></div>
     <% end %>
 
   <% end %><%# /form %>
@@ -188,6 +188,10 @@
 
 <script>
 (function () {
+  var msgAtLeastOne = <%= l(:ir_js_select_at_least_one).to_json %>;
+  var msgConfirmPre = <%= l(:ir_js_confirm_send_pre).to_json %>;
+  var msgConfirmPost = <%= l(:ir_js_confirm_send_post).to_json %>;
+
   function updateCount() {
     var n = document.querySelectorAll('.ir-cb:checked').length;
     document.getElementById('ir-sel-count').textContent = n;
@@ -209,8 +213,8 @@
 
   window.irConfirmSend = function () {
     var n = document.querySelectorAll('.ir-cb:checked').length;
-    if (n === 0) { alert('Selecciona al menos un ticket.'); return false; }
-    return confirm('¿Enviar recordatorios para ' + n + ' ticket(s) seleccionado(s)?');
+    if (n === 0) { alert(msgAtLeastOne); return false; }
+    return confirm(msgConfirmPre + n + msgConfirmPost);
   };
 })();
 </script>

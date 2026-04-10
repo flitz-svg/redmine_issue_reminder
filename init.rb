@@ -9,6 +9,6 @@ Redmine::Plugin.register :redmine_issue_reminder do
   menu :admin_menu,
        :issue_reminder,
        { controller: 'issue_reminders', action: 'index' },
-       caption: 'Recordatorios de Tickets',
+       caption: Proc.new { l(:ir_menu_caption) },
        html: { class: 'icon icon-email' }
 end

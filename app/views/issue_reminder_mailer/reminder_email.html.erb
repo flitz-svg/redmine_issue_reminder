@@ -18,14 +18,19 @@
   </style>
 </head>
 <body>
-  <div class="header"><h2>📋 Recordatorio de Tickets Asignados</h2></div>
+  <div class="header"><h2><%= l(:ir_mail_title) %></h2></div>
   <div class="content">
-    <p>Hola <strong><%= @user.name %></strong>,<br>
-    Tienes <strong><%= @issues.size %> ticket(s)</strong> asignado(s) pendiente(s):</p>
+    <p><%= l(:ir_mail_greeting, name: @user.name) %><br>
+    <%= l(:ir_mail_intro, count: @issues.size) %></p>
     <table>
       <thead>
         <tr>
-          <th>#</th><th>Proyecto</th><th>Asunto</th><th>Estado</th><th>Creado</th><th>Última actualización</th>
+          <th><%= l(:ir_col_id) %></th>
+          <th><%= l(:ir_col_project) %></th>
+          <th><%= l(:ir_col_subject) %></th>
+          <th><%= l(:ir_col_status) %></th>
+          <th><%= l(:ir_col_created) %></th>
+          <th><%= l(:ir_col_updated) %></th>
         </tr>
       </thead>
       <tbody>
@@ -37,15 +42,21 @@
             <td><%= issue.project.name %></td>
             <td><a href="<%= url %>"><%= issue.subject %></a></td>
             <td><span class="badge"><%= issue.status.name %></span></td>
-            <td><%= issue.created_on.strftime('%d/%m/%Y %H:%M') %></td>
-            <td><%= last_j ? last_j.created_on.strftime('%d/%m/%Y %H:%M') : '<span class="no-update">Sin actualizaciones</span>'.html_safe %></td>
+            <td><%= format_time(issue.created_on) %></td>
+            <td>
+              <% if last_j %>
+                <%= format_time(last_j.created_on) %>
+              <% else %>
+                <span class="no-update"><%= l(:ir_label_no_updates) %></span>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </tbody>
     </table>
   </div>
   <div class="footer">
-    Enviado por <strong><%= Setting.app_title %></strong> —
+    <%= l(:ir_mail_footer, app: Setting.app_title) %> —
     <a href="<%= Setting.protocol %>://<%= Setting.host_name %>"><%= Setting.host_name %></a>
   </div>
 </body>

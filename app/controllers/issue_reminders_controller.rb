@@ -20,7 +20,7 @@ class IssueRemindersController < ApplicationController
   def send_reminders
     issue_ids = params[:issue_ids] || []
     if issue_ids.empty?
-      flash[:error] = 'No seleccionaste ningún ticket.'
+      flash[:error] = l(:ir_flash_no_selection)
       redirect_to redmine_ir_panel_path and return
     end
     issues = Issue.where(id: issue_ids).includes(:assigned_to, :status, :project, :journals)
@@ -31,7 +31,7 @@ class IssueRemindersController < ApplicationController
       IssueReminderMailer.reminder_email(user, user_issues).deliver_now
       sent_count += 1
     end
-    flash[:notice] = "Recordatorios enviados a #{sent_count} usuario(s) (#{issue_ids.size} tickets)."
+    flash[:notice] = l(:ir_flash_sent, count: sent_count, tickets: issue_ids.size)
     redirect_to redmine_ir_panel_path
   end
 
@@ -48,12 +48,12 @@ class IssueRemindersController < ApplicationController
 
     user = @issue.assigned_to
     unless user.is_a?(User) && user.active? && user.mail.present?
-      flash[:error] = 'El ticket no tiene un responsable válido con correo asignado.'
+      flash[:error] = l(:ir_flash_no_assignee)
       redirect_to issue_path(@issue) and return
     end
 
     IssueReminderMailer.reminder_email(user, [@issue]).deliver_now
-    flash[:notice] = "✉ Recordatorio enviado a #{user.name} (#{user.mail})."
+    flash[:notice] = l(:ir_flash_single_sent, name: user.name, email: user.mail)
     redirect_to issue_path(@issue)
   rescue ActiveRecord::RecordNotFound
     render_404
