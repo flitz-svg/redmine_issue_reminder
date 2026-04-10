@@ -1,0 +1,216 @@
+<% content_for :header_tags do %>
+<style>
+  /* ── Layout ── */
+  .reminder-panel { max-width: 1100px; }
+
+  /* ── Filtros ── */
+  .ir-filter-box { background:#f6f6f6; border:1px solid #ddd; border-radius:4px; padding:14px 16px; margin-bottom:16px; }
+  .ir-filter-box h3 { margin:0 0 10px; font-size:14px; color:#444; font-weight:bold; }
+  .ir-filter-row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+  .ir-fg { display:flex; flex-direction:column; gap:3px; }
+  .ir-fg label { font-size:12px; font-weight:bold; color:#555; }
+  .ir-fg select { min-width:180px; }
+  .ir-fg input[type=number] { width:70px; }
+
+  /* ── Tabla de issues ── */
+  .ir-table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:12px; }
+  .ir-table th { background:#628db6; color:#fff; padding:7px 10px; text-align:left; font-weight:bold; }
+  .ir-table td { padding:7px 10px; border-bottom:1px solid #eee; vertical-align:middle; }
+  .ir-table tr:nth-child(even) td { background:#f6f9ff; }
+  .ir-table tr:hover td { background:#eef3fb; }
+
+  /* ── Cabecera de usuario ── */
+  .ir-user-header { background:#e8f0fe; padding:7px 12px; font-weight:bold; color:#2a4a7f;
+    border-left:4px solid #628db6; margin:14px 0 3px; border-radius:0 3px 3px 0; font-size:13px; }
+  .ir-user-header .ir-cnt { background:#628db6; color:#fff; border-radius:9px;
+    padding:1px 7px; font-size:11px; margin-left:5px; }
+  .ir-user-header .ir-mail { font-size:11px; font-weight:normal; color:#4a6a9a; margin-left:8px; }
+
+  /* ── Badges ── */
+  .ir-badge { display:inline-block; padding:1px 7px; border-radius:9px; font-size:11px;
+    background:#e0edff; color:#1a56db; font-weight:bold; }
+  .ir-no-upd { color:#aaa; font-style:italic; font-size:12px; }
+
+  /* ── Barra de acciones ── */
+  .ir-action-bar { display:flex; gap:10px; align-items:center; margin:10px 0; }
+  .ir-sel-label { font-size:13px; cursor:pointer; display:flex; align-items:center; gap:5px; }
+
+  /* ── Botón principal — imita el estilo nativo de Redmine ── */
+  .ir-btn-send {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath fill='%23fff' d='M0 0l8 5 8-5v2L8 7 0 2V0zm0 4v8h16V4l-8 5-8-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 8px center;
+    background-size: 14px;
+    padding: 5px 12px 5px 28px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #fff !important;
+    background-color: #628db6;
+    border: 1px solid #4a6f99;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    line-height: 1.5;
+  }
+  .ir-btn-send:hover { background-color: #4a7aaa; border-color: #3a5f88; color:#fff !important; }
+  .ir-btn-send:active { background-color: #3d6a96; }
+
+  /* ── Botón filtrar — estilo nativo Redmine ── */
+  .ir-btn-filter {
+    font-size: 13px; padding: 4px 10px; border-radius: 3px;
+    border: 1px solid #ccc; background: #f6f6f6; color: #333; cursor: pointer;
+  }
+  .ir-btn-filter:hover { background: #eee; border-color: #999; }
+
+  .ir-empty { text-align:center; color:#999; padding:40px; font-size:14px; }
+</style>
+<% end %>
+
+<div class="reminder-panel">
+  <h2>📋 Recordatorios de Tickets</h2>
+
+  <%# Flash solo aquí — Redmine ya lo muestra arriba, así que lo omitimos
+      para evitar el duplicado. Si tu tema no lo muestra, quita los comentarios. %>
+  <%#= render_flash_messages %>
+
+  <%# ── FILTROS ── %>
+  <%= form_tag issue_reminders_path, method: :get do %>
+    <div class="ir-filter-box">
+      <h3>Filtrar tickets</h3>
+      <div class="ir-filter-row">
+
+        <div class="ir-fg">
+          <label>Proyecto(s) <small style="font-weight:normal;">(Ctrl+clic = varios)</small></label>
+          <%= select_tag 'project_ids[]',
+                options_from_collection_for_select(@projects, :id, :name, @selected_project_ids),
+                multiple: true, size: 5 %>
+        </div>
+
+        <div class="ir-fg">
+          <label>Estado(s)</label>
+          <%= select_tag 'status_ids[]',
+                options_from_collection_for_select(@statuses, :id, :name, @selected_status_ids),
+                multiple: true, size: 5 %>
+        </div>
+
+        <div class="ir-fg">
+          <label>Sin actualización hace más de (días)</label>
+          <%= number_field_tag 'days_without_update', @days_without_update, min: 0 %>
+          <small style="color:#888;">0 = sin filtro de fecha</small>
+        </div>
+
+        <div class="ir-fg" style="justify-content:flex-end; padding-bottom:2px;">
+          <button type="submit" class="ir-btn-filter">Aplicar filtros</button>
+        </div>
+
+      </div>
+    </div>
+  <% end %>
+
+  <%# ── FORMULARIO DE ENVÍO ── %>
+  <%= form_tag send_issue_reminders_path, method: :post, id: 'ir-form' do %>
+
+    <% if @issues_by_user.any? %>
+
+      <div class="ir-action-bar">
+        <label class="ir-sel-label">
+          <input type="checkbox" id="ir-sel-all">
+          Seleccionar todos
+        </label>
+        <span style="font-size:13px; color:#555;">
+          <strong id="ir-sel-count">0</strong> seleccionado(s)
+        </span>
+        <button type="submit" class="ir-btn-send" onclick="return irConfirmSend();">
+          Enviar recordatorios
+        </button>
+      </div>
+
+      <% @issues_by_user.each do |user, issues| %>
+        <div class="ir-user-header">
+          👤 <%= user ? user.name : 'Sin asignar' %>
+          <span class="ir-cnt"><%= issues.size %></span>
+          <span class="ir-mail"><%= user&.mail %></span>
+        </div>
+
+        <table class="ir-table">
+          <thead>
+            <tr>
+              <th style="width:28px;"></th>
+              <th>#</th>
+              <th>Proyecto</th>
+              <th>Asunto</th>
+              <th>Estado</th>
+              <th>Prioridad</th>
+              <th>Creado</th>
+              <th>Última actualización</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% issues.each do |issue| %>
+              <% last_j = issue.journals.where.not(notes: [nil, '']).order(created_on: :desc).first %>
+              <tr>
+                <td style="text-align:center;">
+                  <%= check_box_tag 'issue_ids[]', issue.id, false, class: 'ir-cb' %>
+                </td>
+                <td><%= link_to "##{issue.id}", issue_path(issue), target: '_blank' %></td>
+                <td><%= issue.project.name %></td>
+                <td><%= link_to issue.subject, issue_path(issue), target: '_blank' %></td>
+                <td><span class="ir-badge"><%= issue.status.name %></span></td>
+                <td><%= issue.priority.name %></td>
+                <td><%= issue.created_on.strftime('%d/%m/%Y %H:%M') %></td>
+                <td>
+                  <% if last_j %>
+                    <%= last_j.created_on.strftime('%d/%m/%Y %H:%M') %>
+                  <% else %>
+                    <span class="ir-no-upd">Sin actualizaciones</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+
+      <%# Botón inferior — mismo estilo %>
+      <div class="ir-action-bar" style="margin-top:4px;">
+        <button type="submit" class="ir-btn-send" onclick="return irConfirmSend();">
+          Enviar recordatorios seleccionados
+        </button>
+      </div>
+
+    <% else %>
+      <div class="ir-empty">✅ No hay tickets que coincidan con los filtros aplicados.</div>
+    <% end %>
+
+  <% end %><%# /form %>
+</div>
+
+<script>
+(function () {
+  function updateCount() {
+    var n = document.querySelectorAll('.ir-cb:checked').length;
+    document.getElementById('ir-sel-count').textContent = n;
+  }
+
+  document.querySelectorAll('.ir-cb').forEach(function (cb) {
+    cb.addEventListener('change', updateCount);
+  });
+
+  var selAll = document.getElementById('ir-sel-all');
+  if (selAll) {
+    selAll.addEventListener('change', function () {
+      document.querySelectorAll('.ir-cb').forEach(function (cb) {
+        cb.checked = selAll.checked;
+      });
+      updateCount();
+    });
+  }
+
+  window.irConfirmSend = function () {
+    var n = document.querySelectorAll('.ir-cb:checked').length;
+    if (n === 0) { alert('Selecciona al menos un ticket.'); return false; }
+    return confirm('¿Enviar recordatorios para ' + n + ' ticket(s) seleccionado(s)?');
+  };
+})();
+</script>
