@@ -1,95 +1,106 @@
 <div id="ir-plugin-settings">
 <style>
-  #ir-plugin-settings p            { clear:both; margin:0 0 10px 0; padding:0; }
-  #ir-plugin-settings label        { float:none !important; width:auto !important;
-                                     text-align:left !important; display:block !important;
-                                     font-weight:bold; font-size:13px; color:#444;
-                                     margin-bottom:4px; }
-  #ir-plugin-settings small        { font-weight:normal; color:#888; font-size:11px; }
-  #ir-plugin-settings .ir-hint     { display:block; color:#888; font-size:11px; margin-top:2px; }
+  /* Anular el float de Redmine en labels reales */
+  #ir-plugin-settings label {
+    float: none !important; width: auto !important;
+    text-align: left !important;
+  }
+  /* Descripciones — usamos div, no label, para no interferir con CSS de Redmine */
+  #ir-plugin-settings .ir-label {
+    display: block; font-weight: bold; font-size: 13px; color: #444;
+    margin: 10px 0 3px 0; clear: both;
+  }
+  #ir-plugin-settings .ir-label small {
+    font-weight: normal; color: #888; font-size: 11px;
+  }
+  #ir-plugin-settings select { min-width: 220px; display: block; margin-top: 2px; }
+  #ir-plugin-settings input[type=number] { width: 60px; }
 
   /* Toggle */
-  .ir-toggle-row  { display:flex; align-items:center; gap:10px; }
-  .ir-toggle-wrap { position:relative; display:inline-block; width:44px; height:24px; flex-shrink:0; }
-  .ir-toggle-wrap input { opacity:0; width:0; height:0; }
-  .ir-slider      { position:absolute; cursor:pointer; inset:0; background:#ccc; border-radius:24px; transition:.3s; }
-  .ir-slider:before { position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px;
-                      background:#fff; border-radius:50%; transition:.3s; }
-  input:checked + .ir-slider             { background:#628db6; }
-  input:checked + .ir-slider:before      { transform:translateX(20px); }
-  .ir-badge       { padding:2px 9px; border-radius:10px; font-size:12px; font-weight:bold; }
-  .ir-badge-on    { background:#d4edda; color:#155724; }
-  .ir-badge-off   { background:#e2e3e5; color:#555; }
+  .ir-toggle-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; }
+  .ir-tgl-wrap {
+    position: relative; display: inline-block;
+    width: 44px; height: 24px; flex-shrink: 0;
+    cursor: pointer;
+  }
+  .ir-tgl-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .ir-tgl-slider {
+    position: absolute; inset: 0;
+    background: #ccc; border-radius: 24px; transition: .3s;
+  }
+  .ir-tgl-slider::before {
+    content: ""; position: absolute;
+    width: 18px; height: 18px; left: 3px; bottom: 3px;
+    background: #fff; border-radius: 50%; transition: .3s;
+  }
+  .ir-tgl-wrap input:checked + .ir-tgl-slider             { background: #628db6; }
+  .ir-tgl-wrap input:checked + .ir-tgl-slider::before     { transform: translateX(20px); }
+  .ir-badge     { padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+  .ir-badge-on  { background: #d4edda; color: #155724; }
+  .ir-badge-off { background: #e2e3e5; color: #555; }
 
-  /* Cron box */
-  .ir-cron-box  { background:#fff9e6; border:1px solid #f0d060; border-radius:4px;
-                  padding:12px 14px; margin-top:6px; }
-  .ir-cron-box h4 { margin:0 0 5px; font-size:13px; color:#7a5a00; font-weight:bold; }
-  .ir-cron-box p  { font-size:12px; color:#555; margin:0 0 5px; float:none !important;
-                    font-weight:normal !important; display:block !important; }
-  .ir-cron-code { display:block; background:#1e1e2e; color:#cdd6f4; font-family:monospace;
-                  font-size:11px; padding:8px 12px; border-radius:4px; margin:5px 0;
-                  white-space:pre; overflow-x:auto; }
-
-  #ir-plugin-settings select { min-width:220px; }
-  #ir-plugin-settings input[type=number] { width:60px; }
+  /* Cron */
+  .ir-cron-box { background: #fff9e6; border: 1px solid #f0d060; border-radius: 4px;
+                 padding: 12px 14px; margin-top: 14px; clear: both; }
+  .ir-cron-box .ir-cron-title { font-weight: bold; font-size: 13px; color: #7a5a00; margin-bottom: 5px; }
+  .ir-cron-box .ir-cron-text  { font-size: 12px; color: #555; margin: 3px 0; }
+  .ir-cron-code {
+    display: block; background: #1e1e2e; color: #cdd6f4;
+    font-family: monospace; font-size: 11px;
+    padding: 8px 12px; border-radius: 4px; margin: 6px 0;
+    white-space: pre; overflow-x: auto;
+  }
 </style>
 
-<%# ── Toggle on/off ── %>
-<p>
-  <label for="ir-toggle"><%= l(:ir_auto_enabled_label) %></label>
-  <span class="ir-toggle-row">
-    <label class="ir-toggle-wrap" style="display:inline-block !important; margin:0; padding:0;">
-      <input type="checkbox" id="ir-toggle"
-             name="settings[auto_enabled]" value="1"
-             <%= @settings['auto_enabled'] == '1' ? 'checked' : '' %>>
-      <span class="ir-slider"></span>
-    </label>
-    <span id="ir-badge" class="ir-badge <%= @settings['auto_enabled'] == '1' ? 'ir-badge-on' : 'ir-badge-off' %>">
-      <%= @settings['auto_enabled'] == '1' ? l(:ir_auto_status_enabled) : l(:ir_auto_status_disabled) %>
-    </span>
+<%# ── Toggle ── %>
+<div class="ir-label"><%= l(:ir_auto_enabled_label) %></div>
+<div class="ir-toggle-row">
+  <span class="ir-tgl-wrap" onclick="var cb=this.querySelector('input');cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));">
+    <input type="checkbox" id="ir-toggle"
+           name="settings[auto_enabled]" value="1"
+           <%= @settings['auto_enabled'] == '1' ? 'checked' : '' %>>
+    <span class="ir-tgl-slider"></span>
   </span>
-</p>
+  <span id="ir-badge" class="ir-badge <%= @settings['auto_enabled'] == '1' ? 'ir-badge-on' : 'ir-badge-off' %>">
+    <%= @settings['auto_enabled'] == '1' ? l(:ir_auto_status_enabled) : l(:ir_auto_status_disabled) %>
+  </span>
+</div>
 
 <%# ── Días ── %>
-<p>
-  <label for="ir-days"><%= l(:ir_auto_days_label) %></label>
-  <input type="number" id="ir-days" name="settings[auto_days]"
-         value="<%= @settings['auto_days'] || '1' %>" min="1">
-</p>
+<div class="ir-label"><%= l(:ir_auto_days_label) %></div>
+<input type="number" id="ir-days" name="settings[auto_days]"
+       value="<%= @settings['auto_days'] || '1' %>" min="1">
 
 <%# ── Proyectos ── %>
-<p>
-  <label><%= l(:ir_auto_projects_label) %>
-    <small>(Ctrl+clic para seleccionar varios — vacío = todos)</small>
-  </label>
-  <%= select_tag 'settings[auto_project_ids][]',
-        options_from_collection_for_select(
-          Project.active.sorted, :id, :name,
-          Array(@settings['auto_project_ids']).map(&:to_i)
-        ),
-        multiple: true, size: 6 %>
-</p>
+<div class="ir-label">
+  <%= l(:ir_auto_projects_label) %>
+  <small>(Ctrl+clic = varios &mdash; vacío = todos)</small>
+</div>
+<%= select_tag 'settings[auto_project_ids][]',
+      options_from_collection_for_select(
+        Project.active.sorted, :id, :name,
+        Array(@settings['auto_project_ids']).map(&:to_i)
+      ),
+      multiple: true, size: 6 %>
 
 <%# ── Estados ── %>
-<p>
-  <label><%= l(:ir_auto_statuses_label) %>
-    <small>(Ctrl+clic para seleccionar varios — vacío = todos abiertos)</small>
-  </label>
-  <%= select_tag 'settings[auto_status_ids][]',
-        options_from_collection_for_select(
-          IssueStatus.where(is_closed: false).sorted, :id, :name,
-          Array(@settings['auto_status_ids']).map(&:to_i)
-        ),
-        multiple: true, size: 6 %>
-</p>
+<div class="ir-label">
+  <%= l(:ir_auto_statuses_label) %>
+  <small>(Ctrl+clic = varios &mdash; vacío = todos abiertos)</small>
+</div>
+<%= select_tag 'settings[auto_status_ids][]',
+      options_from_collection_for_select(
+        IssueStatus.where(is_closed: false).sorted, :id, :name,
+        Array(@settings['auto_status_ids']).map(&:to_i)
+      ),
+      multiple: true, size: 6 %>
 
 <%# ── Cron ── %>
 <div class="ir-cron-box">
-  <h4>⚙️ <%= l(:ir_auto_cron_title) %></h4>
-  <p><%= l(:ir_auto_cron_intro) %></p>
+  <div class="ir-cron-title">⚙️ <%= l(:ir_auto_cron_title) %></div>
+  <div class="ir-cron-text"><%= l(:ir_auto_cron_intro) %></div>
   <code class="ir-cron-code">0 8 * * * cd /opt/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /opt/redmine/log/issue_reminder.log 2>&1</code>
-  <p>Editá la hora (08:00) según tu preferencia.</p>
+  <div class="ir-cron-text" style="color:#999;">Editá la hora (08:00) según tu preferencia.</div>
 </div>
 
 </div><%# /ir-plugin-settings %>
