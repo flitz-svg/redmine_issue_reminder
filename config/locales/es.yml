@@ -42,3 +42,14 @@ es:
   ir_mail_greeting: "Hola %{name},"
   ir_mail_intro: "Tienes %{count} ticket(s) asignado(s) pendiente(s):"
   ir_mail_footer: "Enviado por %{app}"
+
+  # Automatización
+  ir_auto_enabled_label: "Activar recordatorios automáticos"
+  ir_auto_days_label: "Días sin actividad para enviar recordatorio"
+  ir_auto_projects_label: "Proyectos (dejar vacío = todos)"
+  ir_auto_statuses_label: "Estados (dejar vacío = todos abiertos)"
+  ir_auto_status_enabled: "✅ Activo"
+  ir_auto_status_disabled: "⏸ Inactivo"
+  ir_auto_cron_title: "Cómo activar el envío automático"
+  ir_auto_cron_intro: "El envío automático se ejecuta mediante un comando de rake. Configurá un cron job en el servidor de Redmine para que se ejecute diariamente:"
+  ir_auto_cron_note: "Reemplazá /path/to/redmine con la ruta real de tu instalación y production con tu entorno."

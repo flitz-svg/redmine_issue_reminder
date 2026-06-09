@@ -1,6 +1,6 @@
 # redmine_issue_reminder 🔔
 
-> Plugin para Redmine que envía recordatorios por correo electrónico a los responsables de tickets abiertos — desde el panel de administración, desde el propio ticket, o de forma automática vía cron.
+> Plugin para Redmine que envía recordatorios por correo electrónico a los responsables de tickets abiertos — desde el panel de administración, desde el propio ticket, o de forma automática vía cron con configuración integrada.
 
 [![Ruby](https://img.shields.io/badge/Ruby-2.7%2B-red?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
 [![Redmine](https://img.shields.io/badge/Redmine-5.x-blue?logo=redmine&logoColor=white)](https://www.redmine.org/)
@@ -17,7 +17,7 @@
 |------|-------------|
 | **Panel admin** | Filtra tickets por proyecto, estado y días sin actualización, y envía recordatorios masivos |
 | **Por ticket** | Botón en la vista del ticket para enviar un recordatorio puntual al responsable |
-| **Automático (cron)** | Tarea rake programable para envíos diarios sin intervención manual |
+| **Automático (cron)** | Tarea rake programable para envíos diarios sin intervención manual, configurable desde el panel de administración |
 
 ---
 
@@ -28,6 +28,7 @@
 - ✅ **Botón por ticket** — visible para admin, autor y responsable del ticket
 - ✅ **Agrupación por usuario** — un solo correo por responsable con todos sus tickets
 - ✅ **Tarea rake** — integrable con cron o cualquier scheduler
+- ✅ **Configuración integrada** — toggle on/off, días sin actividad y filtros guardados desde *Admin → Plugins → Configurar*
 - ✅ **Log detallado** — cada envío queda registrado en la salida estándar
 
 ---
@@ -87,6 +88,19 @@ bundle exec rake redmine:issue_reminder:send RAILS_ENV=production
 
 ## Automatización con cron
 
+### 1. Configurar el comportamiento desde Redmine
+
+Ve a **Administración → Plugins → Redmine Issue Reminder → Configurar** y definí:
+
+- **Activar recordatorios automáticos** — toggle on/off
+- **Días sin actividad** — cuántos días deben pasar sin actividad en un ticket para que se envíe el recordatorio (por defecto: 1)
+- **Proyectos** — filtrar por proyectos específicos (vacío = todos)
+- **Estados** — filtrar por estados específicos (vacío = todos los abiertos)
+
+El rake task respeta esta configuración: si está desactivado, no envía nada aunque el cron lo ejecute.
+
+### 2. Programar el cron en el servidor
+
 Edita el crontab del usuario que ejecuta Redmine (`redmine`, `www-data`, etc.):
 
 ```bash
@@ -101,14 +115,11 @@ crontab -e
 
 # Lunes a viernes a las 09:00
 0 9 * * 1-5 cd /path/to/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /var/log/redmine_reminder.log 2>&1
-
-# Dos veces al día: 09:00 y 15:00
-0 9,15 * * * cd /path/to/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /var/log/redmine_reminder.log 2>&1
 ```
 
 > Reemplazar `/path/to/redmine` con la ruta real de tu instalación, por ejemplo `/var/www/redmine` o `/opt/redmine`.
 
-**Si usas rbenv o rvm**, especifica el ejecutable completo:
+**Si usás rbenv o rvm**, especificá el ejecutable completo:
 
 ```cron
 # Con rbenv

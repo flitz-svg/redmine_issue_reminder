@@ -1,0 +1,120 @@
+<style>
+  .ir-cfg { max-width: 600px; }
+  .ir-cfg .ir-field { margin-bottom: 14px; }
+  .ir-cfg .ir-field label { display: block; font-size: 12px; font-weight: bold; color: #555; margin-bottom: 4px; }
+  .ir-cfg .ir-field select { min-width: 200px; }
+  .ir-cfg .ir-field input[type=number] { width: 70px; }
+
+  .ir-toggle-row { display: flex; align-items: center; gap: 12px; }
+  .ir-toggle-wrap { position: relative; display: inline-block; width: 44px; height: 24px; }
+  .ir-toggle-wrap input { opacity: 0; width: 0; height: 0; }
+  .ir-slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background: #ccc; border-radius: 24px; transition: .3s;
+  }
+  .ir-slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background: #fff; border-radius: 50%; transition: .3s;
+  }
+  input:checked + .ir-slider { background: #628db6; }
+  input:checked + .ir-slider:before { transform: translateX(20px); }
+  .ir-toggle-label { font-size: 13px; font-weight: bold; color: #333; }
+  .ir-status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+  .ir-status-on  { background: #d4edda; color: #155724; }
+  .ir-status-off { background: #e2e3e5; color: #555; }
+
+  .ir-cron-box {
+    background: #fff9e6; border: 1px solid #f0d060; border-radius: 4px;
+    padding: 14px 16px; margin-top: 20px;
+  }
+  .ir-cron-box h4 { margin: 0 0 8px; font-size: 13px; color: #7a5a00; }
+  .ir-cron-box p { font-size: 12px; color: #555; margin: 0 0 8px; }
+  .ir-cron-code {
+    display: block; background: #1e1e2e; color: #cdd6f4; font-family: monospace; font-size: 12px;
+    padding: 10px 14px; border-radius: 4px; margin: 8px 0; white-space: pre; overflow-x: auto;
+  }
+</style>
+
+<div class="ir-cfg">
+
+  <%# Toggle on/off %>
+  <div class="ir-field">
+    <div class="ir-toggle-row">
+      <label class="ir-toggle-wrap">
+        <input type="checkbox" id="ir-auto-toggle"
+               name="settings[auto_enabled]" value="1"
+               <%= @settings['auto_enabled'] == '1' ? 'checked' : '' %>>
+        <span class="ir-slider"></span>
+      </label>
+      <span class="ir-toggle-label"><%= l(:ir_auto_enabled_label) %></span>
+      <span id="ir-cfg-badge"
+            class="ir-status-badge <%= @settings['auto_enabled'] == '1' ? 'ir-status-on' : 'ir-status-off' %>">
+        <%= @settings['auto_enabled'] == '1' ? l(:ir_auto_status_enabled) : l(:ir_auto_status_disabled) %>
+      </span>
+    </div>
+  </div>
+
+  <%# Días sin actividad %>
+  <div class="ir-field">
+    <label for="ir-cfg-days"><%= l(:ir_auto_days_label) %></label>
+    <input type="number" id="ir-cfg-days"
+           name="settings[auto_days]"
+           value="<%= @settings['auto_days'] || '1' %>"
+           min="1">
+  </div>
+
+  <%# Proyectos %>
+  <div class="ir-field">
+    <label><%= l(:ir_auto_projects_label) %> <small style="font-weight:normal;">(Ctrl+clic = varios)</small></label>
+    <%= select_tag 'settings[auto_project_ids][]',
+          options_from_collection_for_select(
+            Project.active.sorted,
+            :id, :name,
+            Array(@settings['auto_project_ids']).map(&:to_i)
+          ),
+          multiple: true, size: 5 %>
+  </div>
+
+  <%# Estados %>
+  <div class="ir-field">
+    <label><%= l(:ir_auto_statuses_label) %> <small style="font-weight:normal;">(Ctrl+clic = varios)</small></label>
+    <%= select_tag 'settings[auto_status_ids][]',
+          options_from_collection_for_select(
+            IssueStatus.where(is_closed: false).sorted,
+            :id, :name,
+            Array(@settings['auto_status_ids']).map(&:to_i)
+          ),
+          multiple: true, size: 5 %>
+  </div>
+
+  <%# Instrucciones cron %>
+  <div class="ir-cron-box">
+    <h4>⚙️ <%= l(:ir_auto_cron_title) %></h4>
+    <p><%= l(:ir_auto_cron_intro) %></p>
+    <code class="ir-cron-code"># Ejecutar todos los días a las 8:00 AM
+0 8 * * * cd /path/to/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> log/issue_reminder.log 2>&1</code>
+    <p><%= l(:ir_auto_cron_note).html_safe %></p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var toggle  = document.getElementById('ir-auto-toggle');
+  var badge   = document.getElementById('ir-cfg-badge');
+  var labelOn  = <%= l(:ir_auto_status_enabled).to_json %>;
+  var labelOff = <%= l(:ir_auto_status_disabled).to_json %>;
+
+  function sync() {
+    if (toggle.checked) {
+      badge.textContent = labelOn;
+      badge.className = 'ir-status-badge ir-status-on';
+    } else {
+      badge.textContent = labelOff;
+      badge.className = 'ir-status-badge ir-status-off';
+    }
+  }
+
+  toggle.addEventListener('change', sync);
+})();
+</script>

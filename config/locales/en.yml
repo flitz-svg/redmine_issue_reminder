@@ -42,3 +42,14 @@ en:
   ir_mail_greeting: "Hello %{name},"
   ir_mail_intro: "You have %{count} pending assigned issue(s):"
   ir_mail_footer: "Sent by %{app}"
+
+  # Automation
+  ir_auto_enabled_label: "Enable automatic reminders"
+  ir_auto_days_label: "Days without activity before sending reminder"
+  ir_auto_projects_label: "Projects (leave empty = all)"
+  ir_auto_statuses_label: "Statuses (leave empty = all open)"
+  ir_auto_status_enabled: "Active"
+  ir_auto_status_disabled: "Inactive"
+  ir_auto_cron_title: "How to enable automatic sending"
+  ir_auto_cron_intro: "Automatic sending is triggered by a rake command. Set up a cron job on your Redmine server to run it daily:"
+  ir_auto_cron_note: "Replace /path/to/redmine with your actual Redmine installation path and production with your environment."
