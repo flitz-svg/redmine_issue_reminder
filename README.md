@@ -1,6 +1,6 @@
 # redmine_issue_reminder 🔔
 
-> Plugin para Redmine que envía recordatorios por correo electrónico a los responsables de tickets abiertos — desde el panel de administración, desde el propio ticket, o de forma automática vía cron con configuración integrada.
+> A Redmine plugin that sends email reminders to assignees of open issues — from the admin panel, directly from the issue, or automatically via cron with built-in configuration.
 
 [![Ruby](https://img.shields.io/badge/Ruby-2.7%2B-red?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
 [![Redmine](https://img.shields.io/badge/Redmine-5.x-blue?logo=redmine&logoColor=white)](https://www.redmine.org/)
@@ -9,75 +9,75 @@
 
 ---
 
-## ¿Qué es redmine_issue_reminder?
+## What is redmine_issue_reminder?
 
-`redmine_issue_reminder` es un plugin para Redmine que permite notificar por correo a los usuarios que tienen tickets abiertos asignados, recordándoles que deben atenderlos.
+`redmine_issue_reminder` is a Redmine plugin that notifies users by email about their open assigned issues, reminding them to take action.
 
-| Modo | Descripción |
+| Mode | Description |
 |------|-------------|
-| **Panel admin** | Filtra tickets por proyecto, estado y días sin actualización, y envía recordatorios masivos |
-| **Por ticket** | Botón en la vista del ticket para enviar un recordatorio puntual al responsable |
-| **Automático (cron)** | Tarea rake programable para envíos diarios sin intervención manual, configurable desde el panel de administración |
+| **Admin panel** | Filter issues by project, status, and days without activity, then send bulk reminders |
+| **Per issue** | Button on the issue view to send a one-off reminder to the assignee |
+| **Automatic (cron)** | Schedulable rake task for daily sends without manual intervention, configurable from the admin panel |
 
 ---
 
-## Características
+## Features
 
-- ✅ **Panel de administración** — accesible desde el menú Admin de Redmine
-- ✅ **Filtros avanzados** — por proyecto, estado y días de inactividad
-- ✅ **Botón por ticket** — visible para admin, autor y responsable del ticket
-- ✅ **Agrupación por usuario** — un solo correo por responsable con todos sus tickets
-- ✅ **Tarea rake** — integrable con cron o cualquier scheduler
-- ✅ **Configuración integrada** — toggle on/off, días sin actividad y filtros guardados desde *Admin → Plugins → Configurar*
-- ✅ **Log detallado** — cada envío queda registrado en la salida estándar
+- ✅ **Admin panel** — accessible from the Redmine Admin menu
+- ✅ **Advanced filters** — by project, status, and days of inactivity
+- ✅ **Per-issue button** — visible to admins, the issue author, and the assignee
+- ✅ **Grouped by user** — one email per assignee containing all their issues
+- ✅ **Rake task** — integrates with cron or any scheduler
+- ✅ **Built-in configuration** — on/off toggle, inactivity days, and filters saved from *Admin → Plugins → Configure*
+- ✅ **Detailed logging** — every send is recorded to standard output
 
 ---
 
-## Requisitos
+## Requirements
 
-- Redmine **5.x o superior**
+- Redmine **5.x or higher**
 - Ruby **2.7+**
-- Correo saliente configurado en Redmine (*Administración → Configuración → Correo electrónico*)
+- Outgoing email configured in Redmine (*Administration → Settings → Email notifications*)
 
 ---
 
-## Instalación
+## Installation
 
 ```bash
-# 1. Clona el plugin en la carpeta de plugins de Redmine
+# 1. Clone the plugin into your Redmine plugins directory
 cd /path/to/redmine/plugins
 git clone https://github.com/flitz-svg/redmine_issue_reminder.git
 
-# 2. Reinicia Redmine
+# 2. Restart Redmine
 touch /path/to/redmine/tmp/restart.txt
-# o según tu servidor:
+# or depending on your server:
 # sudo systemctl restart redmine
 # sudo service apache2 restart
 ```
 
 ---
 
-## Uso
+## Usage
 
-### Panel de administración
+### Admin panel
 
-En el menú **Administración** aparece la opción **Recordatorios de Tickets**.
+The **Issue Reminders** option appears in the **Administration** menu.
 
-1. Selecciona uno o más proyectos (opcional)
-2. Selecciona los estados de ticket a incluir (opcional)
-3. Indica el mínimo de días sin actualización (opcional)
-4. Marca los tickets que quieres incluir
-5. Haz clic en **Enviar recordatorios**
+1. Select one or more projects (optional)
+2. Select the issue statuses to include (optional)
+3. Set the minimum number of days without activity (optional)
+4. Check the issues you want to include
+5. Click **Send reminders**
 
-### Botón por ticket
+### Per-issue button
 
-Desde la vista de un ticket, el botón **Enviar recordatorio** envía un correo al responsable del ticket. Es visible para:
+From an issue's detail view, the **Send reminder** button sends an email to the issue's assignee. It is visible to:
 
-- Administradores
-- El autor del ticket
-- El responsable del ticket
+- Administrators
+- The issue author
+- The issue assignee
 
-### Tarea rake (manual)
+### Rake task (manual)
 
 ```bash
 cd /path/to/redmine
@@ -86,50 +86,50 @@ bundle exec rake redmine:issue_reminder:send RAILS_ENV=production
 
 ---
 
-## Automatización con cron
+## Automatic reminders with cron
 
-### 1. Configurar el comportamiento desde Redmine
+### 1. Configure the behavior from Redmine
 
-Ve a **Administración → Plugins → Redmine Issue Reminder → Configurar** y definí:
+Go to **Administration → Plugins → Redmine Issue Reminder → Configure** and set:
 
-- **Activar recordatorios automáticos** — toggle on/off
-- **Días sin actividad** — cuántos días deben pasar sin actividad en un ticket para que se envíe el recordatorio (por defecto: 1)
-- **Proyectos** — filtrar por proyectos específicos (vacío = todos)
-- **Estados** — filtrar por estados específicos (vacío = todos los abiertos)
+- **Enable automatic reminders** — on/off toggle
+- **Days without activity** — how many days must pass with no activity on an issue before a reminder is sent (default: 1)
+- **Projects** — filter by specific projects (leave empty = all)
+- **Statuses** — filter by specific statuses (leave empty = all open)
 
-El rake task respeta esta configuración: si está desactivado, no envía nada aunque el cron lo ejecute.
+The rake task respects this configuration — if disabled, it does nothing even if the cron fires.
 
-### 2. Programar el cron en el servidor
+### 2. Schedule the cron on the server
 
-Edita el crontab del usuario que ejecuta Redmine (`redmine`, `www-data`, etc.):
+Edit the crontab of the user that runs Redmine (`redmine`, `www-data`, etc.):
 
 ```bash
 crontab -e
 ```
 
-**Ejemplos:**
+**Examples:**
 
 ```cron
-# Todos los días a las 08:00
+# Every day at 8:00 AM
 0 8 * * * cd /path/to/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /var/log/redmine_reminder.log 2>&1
 
-# Lunes a viernes a las 09:00
+# Monday through Friday at 9:00 AM
 0 9 * * 1-5 cd /path/to/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /var/log/redmine_reminder.log 2>&1
 ```
 
-> Reemplazar `/path/to/redmine` con la ruta real de tu instalación, por ejemplo `/var/www/redmine` o `/opt/redmine`.
+> Replace `/path/to/redmine` with your actual installation path, e.g. `/var/www/redmine` or `/opt/redmine`.
 
-**Si usás rbenv o rvm**, especificá el ejecutable completo:
+**If you use rbenv or rvm**, specify the full executable path:
 
 ```cron
-# Con rbenv
+# With rbenv
 0 8 * * * cd /path/to/redmine && /home/redmine/.rbenv/shims/bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /var/log/redmine_reminder.log 2>&1
 
-# Con rvm
+# With rvm
 0 8 * * * cd /path/to/redmine && /usr/local/rvm/bin/rvm default do bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /var/log/redmine_reminder.log 2>&1
 ```
 
-**Verificar el log:**
+**Check the log:**
 
 ```bash
 tail -f /var/log/redmine_reminder.log
@@ -137,24 +137,24 @@ tail -f /var/log/redmine_reminder.log
 
 ---
 
-## Contribuir
+## Contributing
 
-¡Las contribuciones son bienvenidas! Por favor:
+Contributions are welcome! Please:
 
-1. Haz fork del repositorio
-2. Crea una rama: `git checkout -b feature/mi-mejora`
-3. Haz commit de tus cambios: `git commit -m 'feat: descripción clara'`
-4. Abre un Pull Request describiendo el problema que resuelve
+1. Fork the repository
+2. Create a branch: `git checkout -b feature/my-improvement`
+3. Commit your changes: `git commit -m 'feat: clear description'`
+4. Open a Pull Request describing the problem it solves
 
-Para bugs, abre un [issue](https://github.com/flitz-svg/redmine_issue_reminder/issues) con:
-- Versión de Redmine y Ruby (`bundle exec ruby -v`)
-- Sistema operativo y versión
-- Pasos exactos para reproducir el error
-- Mensaje de error completo
+For bugs, open an [issue](https://github.com/flitz-svg/redmine_issue_reminder/issues) with:
+- Redmine and Ruby versions (`bundle exec ruby -v`)
+- Operating system and version
+- Exact steps to reproduce the error
+- Full error message
 
 ---
 
-## Licencia
+## License
 
 MIT License
 
@@ -181,5 +181,5 @@ SOFTWARE.
 ---
 
 <p align="center">
-  Hecho con ❤️ para la comunidad Redmine · <a href="https://github.com/flitz-svg/redmine_issue_reminder/issues">Reportar un bug</a> · <a href="https://github.com/flitz-svg/redmine_issue_reminder/issues">Solicitar una función</a>
+  Made with ❤️ for the Redmine community · <a href="https://github.com/flitz-svg/redmine_issue_reminder/issues">Report a bug</a> · <a href="https://github.com/flitz-svg/redmine_issue_reminder/issues">Request a feature</a>
 </p>
