@@ -5,6 +5,7 @@ class IssueReminderMailer < ActionMailer::Base
   def reminder_email(user, issues)
     @user   = user
     @issues = issues
+    set_language_if_valid(user.language.presence || Setting.default_language)
     mail(
       to:      user.mail,
       from:    Setting.mail_from,
