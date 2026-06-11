@@ -1,14 +1,15 @@
 <div id="ir-plugin-settings">
 <style>
-  /* Anular el float de Redmine en labels reales */
+  /* Neutralize Redmine .tabular CSS on any real <label> inside our block */
   #ir-plugin-settings label {
     float: none !important; width: auto !important;
-    text-align: left !important;
+    overflow: visible !important; text-align: left !important;
+    display: inline !important; font-weight: normal !important;
   }
-  /* Descripciones — usamos div, no label, para no interferir con CSS de Redmine */
+  /* Section headings — use div, not label, to avoid Redmine float interference */
   #ir-plugin-settings .ir-label {
     display: block; font-weight: bold; font-size: 13px; color: #444;
-    margin: 10px 0 3px 0; clear: both;
+    margin: 14px 0 3px 0; clear: both;
   }
   #ir-plugin-settings .ir-label small {
     font-weight: normal; color: #888; font-size: 11px;
@@ -19,8 +20,7 @@
   .ir-toggle-row { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; }
   .ir-tgl-wrap {
     position: relative; display: inline-block;
-    width: 44px; height: 24px; flex-shrink: 0;
-    cursor: pointer;
+    width: 44px; height: 24px; flex-shrink: 0; cursor: pointer;
   }
   .ir-tgl-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
   .ir-tgl-slider {
@@ -38,30 +38,33 @@
   .ir-badge-on  { background: #d4edda; color: #155724; }
   .ir-badge-off { background: #e2e3e5; color: #555; }
 
-  /* Checklist */
+  /* Checklist container */
   .ir-checklist {
     max-height: 200px; overflow-y: auto;
     border: 1px solid #ccc; border-radius: 3px;
     background: #fff; padding: 4px 0; margin-top: 4px;
-    min-width: 280px; display: inline-block; width: 100%; max-width: 420px;
+    display: block; width: 100%; max-width: 420px;
+    box-sizing: border-box;
   }
-  .ir-checklist label {
-    display: flex !important; align-items: center; gap: 8px;
-    padding: 5px 10px; font-size: 13px; font-weight: normal !important;
-    color: #333; cursor: pointer;
-    float: none !important; width: auto !important; text-align: left !important;
+  /* Items use div, not label — avoids Redmine .tabular label CSS entirely */
+  .ir-check-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 10px; font-size: 13px; color: #333;
+    cursor: pointer; user-select: none;
   }
-  .ir-checklist label:hover { background: #f0f4ff; }
-  .ir-checklist label.ir-indent { padding-left: 26px; color: #555; }
-  .ir-checklist input[type=checkbox] { margin: 0; flex-shrink: 0; cursor: pointer; }
+  .ir-check-item:hover { background: #f0f4ff; }
+  .ir-check-item.ir-indent { padding-left: 26px; color: #555; }
+  .ir-check-item input[type=checkbox] { margin: 0; flex-shrink: 0; cursor: pointer; }
   .ir-checklist-empty { padding: 8px 10px; font-size: 12px; color: #999; font-style: italic; }
-  .ir-check-actions { font-size: 11px; margin: 3px 0 1px; }
+
+  /* Select all / none links */
+  .ir-check-actions { font-size: 11px; margin: 3px 0 2px; }
   .ir-check-actions a { color: #628db6; cursor: pointer; text-decoration: none; margin-right: 8px; }
   .ir-check-actions a:hover { text-decoration: underline; }
 
-  /* Cron */
+  /* Cron box */
   .ir-cron-box { background: #fff9e6; border: 1px solid #f0d060; border-radius: 4px;
-                 padding: 12px 14px; margin-top: 14px; clear: both; }
+                 padding: 12px 14px; margin-top: 18px; clear: both; }
   .ir-cron-box .ir-cron-title { font-weight: bold; font-size: 13px; color: #7a5a00; margin-bottom: 5px; }
   .ir-cron-box .ir-cron-text  { font-size: 12px; color: #555; margin: 3px 0; }
   .ir-cron-code {
@@ -86,21 +89,22 @@
   </span>
 </div>
 
-<%# ── Días ── %>
+<%# ── Days ── %>
 <div class="ir-label"><%= l(:ir_auto_days_label) %></div>
 <input type="number" id="ir-days" name="settings[auto_days]"
        value="<%= @settings['auto_days'] || '1' %>" min="1">
 
-<%# ── Proyectos ── %>
+<%# ── Projects ── %>
 <%
   selected_project_ids = Array(@settings['auto_project_ids']).map(&:to_i)
-  all_projects = Project.active.sorted
-
-  # Build tree: top-level projects with their active children
-  root_projects = all_projects.select { |p| p.parent_id.nil? }
-  children_by_parent = all_projects.group_by(&:parent_id)
+  all_projects         = Project.active.sorted
+  root_projects        = all_projects.select { |p| p.parent_id.nil? }
+  children_by_parent   = all_projects.group_by(&:parent_id)
 %>
-<div class="ir-label"><%= l(:ir_auto_projects_label) %> <small>(<%= l(:ir_auto_check_empty_hint) %>)</small></div>
+<div class="ir-label">
+  <%= l(:ir_auto_projects_label) %>
+  <small>(<%= l(:ir_auto_check_empty_hint) %>)</small>
+</div>
 <div class="ir-check-actions">
   <a onclick="irCheckAll('ir-projects', true)"><%= l(:ir_auto_select_all) %></a>
   <a onclick="irCheckAll('ir-projects', false)"><%= l(:ir_auto_select_none) %></a>
@@ -110,30 +114,33 @@
     <div class="ir-checklist-empty"><%= l(:ir_auto_no_projects) %></div>
   <% else %>
     <% root_projects.each do |project| %>
-      <label>
+      <div class="ir-check-item" onclick="irToggleCb(this)">
         <input type="checkbox" name="settings[auto_project_ids][]"
-               value="<%= project.id %>"
+               value="<%= project.id %>" onclick="event.stopPropagation();"
                <%= selected_project_ids.include?(project.id) ? 'checked' : '' %>>
-        <%= project.name %>
-      </label>
+        <span><%= project.name %></span>
+      </div>
       <% (children_by_parent[project.id] || []).each do |child| %>
-        <label class="ir-indent">
+        <div class="ir-check-item ir-indent" onclick="irToggleCb(this)">
           <input type="checkbox" name="settings[auto_project_ids][]"
-                 value="<%= child.id %>"
+                 value="<%= child.id %>" onclick="event.stopPropagation();"
                  <%= selected_project_ids.include?(child.id) ? 'checked' : '' %>>
-          └ <%= child.name %>
-        </label>
+          <span>└ <%= child.name %></span>
+        </div>
       <% end %>
     <% end %>
   <% end %>
 </div>
 
-<%# ── Estados ── %>
+<%# ── Statuses ── %>
 <%
   selected_status_ids = Array(@settings['auto_status_ids']).map(&:to_i)
-  open_statuses = IssueStatus.where(is_closed: false).sorted
+  open_statuses       = IssueStatus.where(is_closed: false).sorted
 %>
-<div class="ir-label"><%= l(:ir_auto_statuses_label) %> <small>(<%= l(:ir_auto_check_empty_hint) %>)</small></div>
+<div class="ir-label">
+  <%= l(:ir_auto_statuses_label) %>
+  <small>(<%= l(:ir_auto_check_empty_hint) %>)</small>
+</div>
 <div class="ir-check-actions">
   <a onclick="irCheckAll('ir-statuses', true)"><%= l(:ir_auto_select_all) %></a>
   <a onclick="irCheckAll('ir-statuses', false)"><%= l(:ir_auto_select_none) %></a>
@@ -143,12 +150,12 @@
     <div class="ir-checklist-empty"><%= l(:ir_auto_no_statuses) %></div>
   <% else %>
     <% open_statuses.each do |status| %>
-      <label>
+      <div class="ir-check-item" onclick="irToggleCb(this)">
         <input type="checkbox" name="settings[auto_status_ids][]"
-               value="<%= status.id %>"
+               value="<%= status.id %>" onclick="event.stopPropagation();"
                <%= selected_status_ids.include?(status.id) ? 'checked' : '' %>>
-        <%= status.name %>
-      </label>
+        <span><%= status.name %></span>
+      </div>
     <% end %>
   <% end %>
 </div>
@@ -165,19 +172,27 @@
 
 <script>
 (function(){
+  // Toggle on/off badge
   var t = document.getElementById('ir-toggle');
   var b = document.getElementById('ir-badge');
   var on  = <%= l(:ir_auto_status_enabled).to_json %>;
   var off = <%= l(:ir_auto_status_disabled).to_json %>;
-  if(t) t.addEventListener('change', function(){
+  if (t) t.addEventListener('change', function(){
     b.textContent = t.checked ? on : off;
     b.className = 'ir-badge ' + (t.checked ? 'ir-badge-on' : 'ir-badge-off');
   });
 
+  // Toggle checkbox when clicking on the row div
+  window.irToggleCb = function(row) {
+    var cb = row.querySelector('input[type=checkbox]');
+    if (cb) { cb.checked = !cb.checked; }
+  };
+
+  // Select / deselect all in a checklist
   window.irCheckAll = function(containerId, checked) {
-    document.querySelectorAll('#' + containerId + ' input[type=checkbox]').forEach(function(cb) {
-      cb.checked = checked;
-    });
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    el.querySelectorAll('input[type=checkbox]').forEach(function(cb) { cb.checked = checked; });
   };
 })();
 </script>
