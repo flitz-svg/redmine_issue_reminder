@@ -13,7 +13,6 @@
   #ir-plugin-settings .ir-label small {
     font-weight: normal; color: #888; font-size: 11px;
   }
-  #ir-plugin-settings select { min-width: 220px; display: block; margin-top: 2px; }
   #ir-plugin-settings input[type=number] { width: 60px; }
 
   /* Toggle */
@@ -38,6 +37,27 @@
   .ir-badge     { padding: 2px 9px; border-radius: 10px; font-size: 12px; font-weight: bold; }
   .ir-badge-on  { background: #d4edda; color: #155724; }
   .ir-badge-off { background: #e2e3e5; color: #555; }
+
+  /* Checklist */
+  .ir-checklist {
+    max-height: 200px; overflow-y: auto;
+    border: 1px solid #ccc; border-radius: 3px;
+    background: #fff; padding: 4px 0; margin-top: 4px;
+    min-width: 280px; display: inline-block; width: 100%; max-width: 420px;
+  }
+  .ir-checklist label {
+    display: flex !important; align-items: center; gap: 8px;
+    padding: 5px 10px; font-size: 13px; font-weight: normal !important;
+    color: #333; cursor: pointer;
+    float: none !important; width: auto !important; text-align: left !important;
+  }
+  .ir-checklist label:hover { background: #f0f4ff; }
+  .ir-checklist label.ir-indent { padding-left: 26px; color: #555; }
+  .ir-checklist input[type=checkbox] { margin: 0; flex-shrink: 0; cursor: pointer; }
+  .ir-checklist-empty { padding: 8px 10px; font-size: 12px; color: #999; font-style: italic; }
+  .ir-check-actions { font-size: 11px; margin: 3px 0 1px; }
+  .ir-check-actions a { color: #628db6; cursor: pointer; text-decoration: none; margin-right: 8px; }
+  .ir-check-actions a:hover { text-decoration: underline; }
 
   /* Cron */
   .ir-cron-box { background: #fff9e6; border: 1px solid #f0d060; border-radius: 4px;
@@ -72,35 +92,73 @@
        value="<%= @settings['auto_days'] || '1' %>" min="1">
 
 <%# ── Proyectos ── %>
-<div class="ir-label">
-  <%= l(:ir_auto_projects_label) %>
-  <small>(Ctrl+clic = varios &mdash; vacío = todos)</small>
+<%
+  selected_project_ids = Array(@settings['auto_project_ids']).map(&:to_i)
+  all_projects = Project.active.sorted
+
+  # Build tree: top-level projects with their active children
+  root_projects = all_projects.select { |p| p.parent_id.nil? }
+  children_by_parent = all_projects.group_by(&:parent_id)
+%>
+<div class="ir-label"><%= l(:ir_auto_projects_label) %> <small>(<%= l(:ir_auto_check_empty_hint) %>)</small></div>
+<div class="ir-check-actions">
+  <a onclick="irCheckAll('ir-projects', true)"><%= l(:ir_auto_select_all) %></a>
+  <a onclick="irCheckAll('ir-projects', false)"><%= l(:ir_auto_select_none) %></a>
 </div>
-<%= select_tag 'settings[auto_project_ids][]',
-      options_from_collection_for_select(
-        Project.active.sorted, :id, :name,
-        Array(@settings['auto_project_ids']).map(&:to_i)
-      ),
-      multiple: true, size: 6 %>
+<div class="ir-checklist" id="ir-projects">
+  <% if all_projects.empty? %>
+    <div class="ir-checklist-empty"><%= l(:ir_auto_no_projects) %></div>
+  <% else %>
+    <% root_projects.each do |project| %>
+      <label>
+        <input type="checkbox" name="settings[auto_project_ids][]"
+               value="<%= project.id %>"
+               <%= selected_project_ids.include?(project.id) ? 'checked' : '' %>>
+        <%= project.name %>
+      </label>
+      <% (children_by_parent[project.id] || []).each do |child| %>
+        <label class="ir-indent">
+          <input type="checkbox" name="settings[auto_project_ids][]"
+                 value="<%= child.id %>"
+                 <%= selected_project_ids.include?(child.id) ? 'checked' : '' %>>
+          └ <%= child.name %>
+        </label>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>
 
 <%# ── Estados ── %>
-<div class="ir-label">
-  <%= l(:ir_auto_statuses_label) %>
-  <small>(Ctrl+clic = varios &mdash; vacío = todos abiertos)</small>
+<%
+  selected_status_ids = Array(@settings['auto_status_ids']).map(&:to_i)
+  open_statuses = IssueStatus.where(is_closed: false).sorted
+%>
+<div class="ir-label"><%= l(:ir_auto_statuses_label) %> <small>(<%= l(:ir_auto_check_empty_hint) %>)</small></div>
+<div class="ir-check-actions">
+  <a onclick="irCheckAll('ir-statuses', true)"><%= l(:ir_auto_select_all) %></a>
+  <a onclick="irCheckAll('ir-statuses', false)"><%= l(:ir_auto_select_none) %></a>
 </div>
-<%= select_tag 'settings[auto_status_ids][]',
-      options_from_collection_for_select(
-        IssueStatus.where(is_closed: false).sorted, :id, :name,
-        Array(@settings['auto_status_ids']).map(&:to_i)
-      ),
-      multiple: true, size: 6 %>
+<div class="ir-checklist" id="ir-statuses">
+  <% if open_statuses.empty? %>
+    <div class="ir-checklist-empty"><%= l(:ir_auto_no_statuses) %></div>
+  <% else %>
+    <% open_statuses.each do |status| %>
+      <label>
+        <input type="checkbox" name="settings[auto_status_ids][]"
+               value="<%= status.id %>"
+               <%= selected_status_ids.include?(status.id) ? 'checked' : '' %>>
+        <%= status.name %>
+      </label>
+    <% end %>
+  <% end %>
+</div>
 
 <%# ── Cron ── %>
 <div class="ir-cron-box">
   <div class="ir-cron-title">⚙️ <%= l(:ir_auto_cron_title) %></div>
   <div class="ir-cron-text"><%= l(:ir_auto_cron_intro) %></div>
   <code class="ir-cron-code">0 8 * * * cd /opt/redmine && bundle exec rake redmine:issue_reminder:send RAILS_ENV=production >> /opt/redmine/log/issue_reminder.log 2>&1</code>
-  <div class="ir-cron-text" style="color:#999;">Editá la hora (08:00) según tu preferencia.</div>
+  <div class="ir-cron-text" style="color:#999;"><%= l(:ir_auto_cron_note) %></div>
 </div>
 
 </div><%# /ir-plugin-settings %>
@@ -115,5 +173,11 @@
     b.textContent = t.checked ? on : off;
     b.className = 'ir-badge ' + (t.checked ? 'ir-badge-on' : 'ir-badge-off');
   });
+
+  window.irCheckAll = function(containerId, checked) {
+    document.querySelectorAll('#' + containerId + ' input[type=checkbox]').forEach(function(cb) {
+      cb.checked = checked;
+    });
+  };
 })();
 </script>
