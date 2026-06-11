@@ -6,11 +6,29 @@
   /* ── Filtros ── */
   .ir-filter-box { background:#f6f6f6; border:1px solid #ddd; border-radius:4px; padding:14px 16px; margin-bottom:16px; }
   .ir-filter-box h3 { margin:0 0 10px; font-size:14px; color:#444; font-weight:bold; }
-  .ir-filter-row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-end; }
+  .ir-filter-row { display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; }
   .ir-fg { display:flex; flex-direction:column; gap:3px; }
-  .ir-fg label { font-size:12px; font-weight:bold; color:#555; }
-  .ir-fg select { min-width:180px; }
+  .ir-fg-label { font-size:12px; font-weight:bold; color:#555; margin-bottom:1px; }
   .ir-fg input[type=number] { width:70px; }
+
+  /* ── Checklist (filtro) ── */
+  .ir-fcl {
+    max-height: 160px; overflow-y: auto;
+    border: 1px solid #ccc; border-radius: 3px;
+    background: #fff; padding: 3px 0;
+    min-width: 190px;
+  }
+  .ir-fcl-item {
+    display: flex; align-items: center; gap: 7px;
+    padding: 4px 8px; font-size: 13px; color: #333;
+    cursor: pointer; user-select: none;
+  }
+  .ir-fcl-item:hover { background: #eef3fb; }
+  .ir-fcl-item.ir-indent { padding-left: 22px; color: #555; font-size: 12px; }
+  .ir-fcl-item input[type=checkbox] { margin: 0; flex-shrink: 0; cursor: pointer; }
+  .ir-cl-actions { font-size: 11px; margin-bottom: 2px; }
+  .ir-cl-actions a { color: #628db6; cursor: pointer; text-decoration: none; margin-right: 6px; }
+  .ir-cl-actions a:hover { text-decoration: underline; }
 
   /* ── Tabla de issues ── */
   .ir-table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:12px; }
@@ -35,28 +53,19 @@
   .ir-action-bar { display:flex; gap:10px; align-items:center; margin:10px 0; }
   .ir-sel-label { font-size:13px; cursor:pointer; display:flex; align-items:center; gap:5px; }
 
-  /* ── Botón principal — imita el estilo nativo de Redmine ── */
+  /* ── Botón principal ── */
   .ir-btn-send {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12'%3E%3Cpath fill='%23fff' d='M0 0l8 5 8-5v2L8 7 0 2V0zm0 4v8h16V4l-8 5-8-5z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: 8px center;
-    background-size: 14px;
-    padding: 5px 12px 5px 28px;
-    font-size: 13px;
-    font-weight: bold;
-    color: #fff !important;
-    background-color: #628db6 !important;
-    border: 1px solid #4a6f99 !important;
-    border-radius: 3px;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-block;
-    line-height: 1.5;
+    background-repeat: no-repeat; background-position: 8px center; background-size: 14px;
+    padding: 5px 12px 5px 28px; font-size: 13px; font-weight: bold;
+    color: #fff !important; background-color: #628db6 !important;
+    border: 1px solid #4a6f99 !important; border-radius: 3px;
+    cursor: pointer; text-decoration: none; display: inline-block; line-height: 1.5;
   }
   .ir-btn-send:hover { background-color: #4a7aaa; border-color: #3a5f88; color:#fff !important; }
   .ir-btn-send:active { background-color: #3d6a96; }
 
-  /* ── Botón filtrar — estilo nativo Redmine ── */
+  /* ── Botón filtrar ── */
   .ir-btn-filter {
     font-size: 13px; padding: 4px 10px; border-radius: 3px;
     border: 1px solid #ccc; background: #f6f6f6; color: #333; cursor: pointer;
@@ -67,12 +76,15 @@
 </style>
 <% end %>
 
+<%
+  selected_pids = Array(@selected_project_ids).map(&:to_s)
+  selected_sids = Array(@selected_status_ids).map(&:to_s)
+  root_projects  = @projects.select { |p| p.parent_id.nil? }
+  children_by_parent = @projects.group_by { |p| p.parent_id.to_s }
+%>
+
 <div class="reminder-panel">
   <h2><%= l(:ir_panel_title) %></h2>
-
-  <%# Flash solo aquí — Redmine ya lo muestra arriba, así que lo omitimos
-      para evitar el duplicado. Si tu tema no lo muestra, quita los comentarios. %>
-  <%#= render_flash_messages %>
 
   <%# ── FILTROS ── %>
   <%= form_tag redmine_ir_panel_path, method: :get do %>
@@ -80,27 +92,61 @@
       <h3><%= l(:ir_filter_title) %></h3>
       <div class="ir-filter-row">
 
+        <%# Projects checklist %>
         <div class="ir-fg">
-          <label><%= l(:ir_label_projects) %> <small style="font-weight:normal;"><%= l(:ir_label_projects_hint) %></small></label>
-          <%= select_tag 'project_ids[]',
-                options_from_collection_for_select(@projects, :id, :name, @selected_project_ids),
-                multiple: true, size: 5 %>
+          <div class="ir-fg-label"><%= l(:ir_label_projects) %> <small style="font-weight:normal;color:#888;">(vacío = todos)</small></div>
+          <div class="ir-cl-actions">
+            <a onclick="irFclAll('ir-f-projects', true)"><%= l(:ir_auto_select_all) %></a>
+            <a onclick="irFclAll('ir-f-projects', false)"><%= l(:ir_auto_select_none) %></a>
+          </div>
+          <div class="ir-fcl" id="ir-f-projects">
+            <% root_projects.each do |project| %>
+              <div class="ir-fcl-item" onclick="irFclToggle(this)">
+                <input type="checkbox" name="project_ids[]" value="<%= project.id %>"
+                       onclick="event.stopPropagation();"
+                       <%= selected_pids.include?(project.id.to_s) ? 'checked' : '' %>>
+                <span><%= project.name %></span>
+              </div>
+              <% (children_by_parent[project.id.to_s] || []).each do |child| %>
+                <div class="ir-fcl-item ir-indent" onclick="irFclToggle(this)">
+                  <input type="checkbox" name="project_ids[]" value="<%= child.id %>"
+                         onclick="event.stopPropagation();"
+                         <%= selected_pids.include?(child.id.to_s) ? 'checked' : '' %>>
+                  <span>└ <%= child.name %></span>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
         </div>
 
+        <%# Statuses checklist %>
         <div class="ir-fg">
-          <label><%= l(:ir_label_statuses) %></label>
-          <%= select_tag 'status_ids[]',
-                options_from_collection_for_select(@statuses, :id, :name, @selected_status_ids),
-                multiple: true, size: 5 %>
+          <div class="ir-fg-label"><%= l(:ir_label_statuses) %> <small style="font-weight:normal;color:#888;">(vacío = todos)</small></div>
+          <div class="ir-cl-actions">
+            <a onclick="irFclAll('ir-f-statuses', true)"><%= l(:ir_auto_select_all) %></a>
+            <a onclick="irFclAll('ir-f-statuses', false)"><%= l(:ir_auto_select_none) %></a>
+          </div>
+          <div class="ir-fcl" id="ir-f-statuses">
+            <% @statuses.each do |status| %>
+              <div class="ir-fcl-item" onclick="irFclToggle(this)">
+                <input type="checkbox" name="status_ids[]" value="<%= status.id %>"
+                       onclick="event.stopPropagation();"
+                       <%= selected_sids.include?(status.id.to_s) ? 'checked' : '' %>>
+                <span><%= status.name %></span>
+              </div>
+            <% end %>
+          </div>
         </div>
 
+        <%# Days input %>
         <div class="ir-fg">
-          <label><%= l(:ir_label_days) %></label>
+          <div class="ir-fg-label"><%= l(:ir_label_days) %></div>
           <%= number_field_tag 'days_without_update', @days_without_update, min: 0 %>
           <small style="color:#888;"><%= l(:ir_label_days_hint) %></small>
         </div>
 
-        <div class="ir-fg" style="justify-content:flex-end; padding-bottom:2px;">
+        <%# Submit %>
+        <div class="ir-fg" style="justify-content:flex-end; padding-top:18px;">
           <button type="submit" class="ir-btn-filter"><%= l(:ir_btn_filter) %></button>
         </div>
 
@@ -172,7 +218,6 @@
         </table>
       <% end %>
 
-      <%# Botón inferior — mismo estilo %>
       <div class="ir-action-bar" style="margin-top:4px;">
         <button type="submit" class="ir-btn-send" onclick="return irConfirmSend();">
           <%= l(:ir_btn_send_selected) %>
@@ -188,6 +233,18 @@
 
 <script>
 (function () {
+  // ── Filter checklist helpers ──
+  window.irFclToggle = function(row) {
+    var cb = row.querySelector('input[type=checkbox]');
+    if (cb) cb.checked = !cb.checked;
+  };
+  window.irFclAll = function(id, checked) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('input[type=checkbox]').forEach(function(cb) { cb.checked = checked; });
+  };
+
+  // ── Issue selection ──
   var msgAtLeastOne = <%= l(:ir_js_select_at_least_one).to_json %>;
   var msgConfirmPre = <%= l(:ir_js_confirm_send_pre).to_json %>;
   var msgConfirmPost = <%= l(:ir_js_confirm_send_post).to_json %>;
@@ -204,9 +261,7 @@
   var selAll = document.getElementById('ir-sel-all');
   if (selAll) {
     selAll.addEventListener('change', function () {
-      document.querySelectorAll('.ir-cb').forEach(function (cb) {
-        cb.checked = selAll.checked;
-      });
+      document.querySelectorAll('.ir-cb').forEach(function (cb) { cb.checked = selAll.checked; });
       updateCount();
     });
   }
